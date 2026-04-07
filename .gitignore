@@ -1,0 +1,13 @@
+com-lj.ungraph.txt.gz
+venv/
+__pycache__/
+checkpoints/
+.pytest_cache/
+.ipynb_checkpoints/
+.agents/
+.agent/
+_agents/
+_agent/
+*.pyc
+results_*.json
+plots/

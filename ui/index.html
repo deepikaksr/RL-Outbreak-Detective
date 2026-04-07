@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RL Outbreak Detective — Dashboard</title>
+  <meta name="description" content="Live dashboard for the RL Outbreak Detective project — visualizing Patient Zero identification using Reinforcement Learning on the SNAP LiveJournal network." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Design Tokens ─────────────────────────────────────── */
+    :root {
+      --bg:        #0d0d1a;
+      --panel:     #13132a;
+      --card:      #1a1a38;
+      --border:    rgba(100,100,200,0.18);
+      --glow:      rgba(120,80,255,0.12);
+      --accent1:   #7c5cfc;
+      --accent2:   #00d4aa;
+      --accent3:   #ff5e7e;
+      --orange:    #f5a623;
+      --text:      #e8e8ff;
+      --muted:     #7878aa;
+      --success:   #2ecc71;
+      --danger:    #e74c3c;
+      --blue:      #3498db;
+      --font:      'Inter', sans-serif;
+      --mono:      'JetBrains Mono', monospace;
+      --radius:    14px;
+      --shadow:    0 8px 40px rgba(0,0,0,0.55);
+    }
+
+    /* ─── Reset & Base ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Animated Starfield Background ────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(124,92,252,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(0,212,170,0.06) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Header ────────────────────────────────────────────── */
+    header {
+      position: relative; z-index: 10;
+      padding: 2.5rem 2rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(20,20,50,0.95) 0%, transparent 100%);
+      text-align: center;
+    }
+    header .badge {
+      display: inline-block;
+      background: rgba(124,92,252,0.15);
+      border: 1px solid rgba(124,92,252,0.4);
+      color: #b39dfc;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.3rem 1rem;
+      border-radius: 50px;
+      margin-bottom: 1rem;
+    }
+    header h1 {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 0%, var(--accent1) 50%, var(--accent2) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.15;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: 0.6rem;
+      font-size: 0.95rem;
+      max-width: 620px;
+      margin-inline: auto;
+    }
+
+    /* ─── Nav Tabs ──────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; gap: 0.25rem;
+      padding: 0.75rem 2rem;
+      background: rgba(13,13,26,0.92);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    nav button {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.5rem 1.1rem;
+      border-radius: 8px;
+      transition: all 0.22s;
+      white-space: nowrap;
+    }
+    nav button:hover { color: var(--text); border-color: var(--border); }
+    nav button.active {
+      background: rgba(124,92,252,0.18);
+      border-color: var(--accent1);
+      color: #c4b5fd;
+    }
+
+    /* ─── Main Layout ───────────────────────────────────────── */
+    main {
+      position: relative; z-index: 5;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    /* ─── Section ───────────────────────────────────────────── */
+    .section { display: none; animation: fadeUp 0.4s ease; }
+    .section.active { display: block; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .section-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .section-title span { font-size: 1.5rem; }
+
+    /* ─── Glass Card ─────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 12px 50px rgba(0,0,0,0.65); }
+
+    /* ─── Stat Grid (Dataset Section) ───────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, rgba(124,92,252,0.1) 0%, rgba(0,212,170,0.06) 100%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.4rem;
+      text-align: center;
+      transition: all 0.22s;
+    }
+    .stat-card:hover { border-color: var(--accent1); background: rgba(124,92,252,0.15); }
+    .stat-card .stat-val {
+      font-size: 2rem;
+      font-weight: 800;
+      font-family: var(--mono);
+      color: var(--accent2);
+    }
+    .stat-card .stat-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.3rem;
+    }
+
+    /* ─── Baseline Tabs ──────────────────────────────────────── */
+    .strategy-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
+    .stab {
+      padding: 0.45rem 1rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 0.83rem;
+      font-weight: 600;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font);
+      transition: all 0.2s;
+    }
+    .stab.active, .stab:hover { border-color: var(--accent1); color: var(--text); background: rgba(124,92,252,0.12); }
+
+    /* ─── Step Log Table ─────────────────────────────────────── */
+    .step-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .step-table th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.08em; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--border); text-align: left; }
+    .step-table td { padding: 0.55rem 0.8rem; border-bottom: 1px solid rgba(100,100,200,0.07); font-family: var(--mono); }
+    .step-table tr:last-child td { border-bottom: none; }
+    .step-table tr:hover td { background: rgba(124,92,252,0.06); }
+    .reward-neg { color: var(--danger); }
+    .reward-pos { color: var(--success); }
+    .action-guess { color: var(--orange); font-weight: 600; }
+
+    /* ─── Verdict Badge ──────────────────────────────────────── */
+    .verdict {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 1.2rem;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-top: 1rem;
+    }
+    .verdict.correct { background: rgba(46,204,113,0.15); border: 1px solid var(--success); color: var(--success); }
+    .verdict.wrong   { background: rgba(231,76,60,0.13);  border: 1px solid var(--danger);  color: var(--danger); }
+
+    /* ─── Chart Canvas ───────────────────────────────────────── */
+    .chart-container { position: relative; height: 260px; }
+    canvas { border-radius: 8px; }
+
+    /* ─── Training Metrics Table ─────────────────────────────── */
+    .metric-row {
+      display: flex; justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 0.2rem;
+      border-bottom: 1px solid rgba(100,100,200,0.08);
+      font-size: 0.88rem;
+    }
+    .metric-row:last-child { border-bottom: none; }
+    .metric-row .iter { font-family: var(--mono); color: var(--accent1); font-weight: 600; }
+    .metric-row .reward-bar {
+      flex: 1; margin: 0 1rem;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.05);
+      overflow: hidden;
+    }
+    .metric-row .reward-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      transition: width 1s ease;
+    }
+    .metric-row .reward-val { font-family: var(--mono); color: var(--accent2); width: 80px; text-align: right; }
+
+    /* ─── Loading / Empty State ──────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+    .empty .icon { font-size: 3rem; margin-bottom: 0.8rem; }
+    .empty p { font-size: 0.9rem; line-height: 1.6; }
+    .empty code { font-family: var(--mono); color: var(--accent2); font-size: 0.85rem; }
+
+    /* ─── Scrollbar ──────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ─── Footer ─────────────────────────────────────────────── */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border-top: 1px solid var(--border);
+    }
+    footer span { color: var(--accent1); }
+
+    /* ─── Scroll Container ───────────────────────────────────── */
+    .scroll-box { max-height: 400px; overflow-y: auto; }
+
+    /* ─── Accuracy Bar Chart ─────────────────────────────────── */
+    .acc-grid { display: flex; flex-direction: column; gap: 1rem; }
+    .acc-row { display: flex; align-items: center; gap: 1rem; font-size: 0.88rem; }
+    .acc-label { width: 130px; font-weight: 600; }
+    .acc-bar-wrap { flex: 1; background: rgba(255,255,255,0.04); height: 24px; border-radius: 6px; overflow: hidden; }
+    .acc-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 8px; font-size: 0.75rem; font-weight: 600; transition: width 1.2s cubic-bezier(0.25, 1, 0.5, 1); }
+    .acc-result { width: 80px; text-align: right; font-family: var(--mono); font-size: 0.82rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">19MAM82 · Reinforcement Learning Lab</div>
+  <h1>🕵️‍♂️ RL Outbreak Detective</h1>
+  <p>Identifying Patient Zero in a massive contact network under a limited testing budget — powered by PPO + Ray RLlib.</p>
+</header>
+
+<nav id="nav">
+  <button class="active" onclick="showSection('dataset', this)" id="tab-dataset">📊 Dataset</button>
+  <button onclick="showSection('baselines', this)" id="tab-baselines">🎯 Baselines</button>
+  <button onclick="showSection('training', this)" id="tab-training">🤖 Training</button>
+  <button onclick="showSection('evaluation', this)" id="tab-evaluation">🔍 Evaluation</button>
+</nav>
+
+<main>
+
+  <!-- ═══════════ SECTION 1: DATASET ═══════════ -->
+  <section id="section-dataset" class="section active">
+    <h2 class="section-title"><span>📊</span> Dataset Statistics</h2>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-val" id="stat-nodes">—</div>
+        <div class="stat-label">Total Nodes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-edges">—</div>
+        <div class="stat-label">Total Edges</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-budget">15</div>
+        <div class="stat-label">Test Budget (K)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-infprob">0.3</div>
+        <div class="stat-label">Infection Probability</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" id="stat-simsteps">5</div>
+        <div class="stat-label">SIR Simulation Steps</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">PPO</div>
+        <div class="stat-label">RL Algorithm</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem;">
+      <div style="font-weight:700; margin-bottom:0.8rem; color: var(--accent2);">🌐 SNAP com-LiveJournal Network</div>
+      <p style="color:var(--muted); font-size:0.9rem; line-height:1.7;">
+        The largest available social community network from Stanford SNAP — with ~4 million nodes and 34 million edges. 
+        The RL agent must locate a single hidden <strong style="color:var(--text)">Patient Zero</strong> node
+        using at most <strong style="color:var(--accent2)">15 tests</strong>, after a 5-step SIR outbreak has already spread from that source.
+      </p>
+      <div style="margin-top:1rem; display:flex; gap:0.6rem; flex-wrap:wrap;">
+        <span style="background:rgba(0,212,170,0.1); border:1px solid rgba(0,212,170,0.3); color:var(--accent2); padding:0.3rem 0.8rem; border-radius:6px; font-size:0.8rem;">SIR Model</span>
+        <span style="background:rgba(124,92,252,0.1); border:1px solid rgba(124,92,252,0.3); color:#b39dfc; padding:0.3rem 0.8rem; border-radius:6px; font-size:0.8rem;">Ray RLlib</span>
+        <span style="background:rgba(245,166,35,0.1); border:1px solid rgba(245,166,35,0.3); color:var(--orange); padding:0.3rem 0.8rem; border-radius:6px; font-size:0.8rem;">26 Parallel Workers</span>
+        <span style="background:rgba(52,152,219,0.1); border:1px solid rgba(52,152,219,0.3); color:var(--blue); padding:0.3rem 0.8rem; border-radius:6px; font-size:0.8rem;">NetworkX Graph</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SECTION 2: BASELINES ═══════════ -->
+  <section id="section-baselines" class="section">
+    <h2 class="section-title"><span>🎯</span> Baseline Strategies</h2>
+    <div class="strategy-tabs">
+      <button class="stab active" onclick="showStrategy('random', this)" id="stab-random">🎲 Random Testing</button>
+      <button class="stab" onclick="showStrategy('degree', this)" id="stab-degree">📈 Degree Heuristic</button>
+      <button class="stab" onclick="showStrategy('contact_tracing', this)" id="stab-contact">🔗 Contact Tracing</button>
+    </div>
+    <div id="baseline-content" class="card">
+      <div class="empty"><div class="icon">⏳</div><p>Loading baseline results…<br/><code>results_demo.json</code></p></div>
+    </div>
+    <!-- Accuracy comparison -->
+    <div class="card" style="margin-top:1.2rem;">
+      <div style="font-weight:700; margin-bottom:1.2rem; color:var(--accent2);">📊 Accuracy Comparison</div>
+      <div class="acc-grid" id="accuracy-chart">
+        <div class="empty"><div class="icon">📂</div><p>No data — run <code>demo.py</code> first</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SECTION 3: TRAINING ═══════════ -->
+  <section id="section-training" class="section">
+    <h2 class="section-title"><span>🤖</span> PPO Training Metrics</h2>
+    <div id="training-content">
+      <div class="empty"><div class="icon">⏳</div><p>Loading training metrics…<br/><code>results_train.json</code></p></div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SECTION 4: EVALUATION ═══════════ -->
+  <section id="section-evaluation" class="section">
+    <h2 class="section-title"><span>🔍</span> RL Agent Evaluation</h2>
+    <div id="evaluation-content">
+      <div class="empty"><div class="icon">⏳</div><p>Loading evaluation results…<br/><code>results_evaluate.json</code></p></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  Built for <span>19MAM82 – Reinforcement Learning</span> · Dr. N. Vanitha · Deepika KSR & Sangamithra G
+</footer>
+
+<script>
+/* ─── Section Navigation ─────────────────────────────── */
+function showSection(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('section-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ─── Utility ────────────────────────────────────────── */
+function fmt(num) {
+  if (num === null || num === undefined) return 'N/A';
+  return typeof num === 'number' ? num.toFixed(3) : num;
+}
+function fmtBig(n) {
+  return n >= 1e6 ? (n/1e6).toFixed(2)+'M' : n >= 1e3 ? (n/1e3).toFixed(0)+'K' : n;
+}
+
+/* ─── Baseline Data & Rendering ─────────────────────── */
+let demoData = null;
+
+const STRATEGY_META = {
+  random:          { label: '🎲 Random Testing',    color: '#e74c3c', desc: 'Picks untested nodes at random each turn.' },
+  degree:          { label: '📈 Degree Heuristic',  color: '#3498db', desc: 'Prioritizes highest-degree (most connected) nodes.' },
+  contact_tracing: { label: '🔗 Contact Tracing',   color: '#2ecc71', desc: 'Follows positive test results — tests neighbors of infected nodes.' },
+};
+
+function showStrategy(key, btn) {
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBaseline(key);
+}
+
+function renderBaseline(key) {
+  const container = document.getElementById('baseline-content');
+  if (!demoData || !demoData[key]) {
+    const missing = !demoData ? 'No data file found.' : `Strategy "${key}" not in results.`;
+    container.innerHTML = `<div class="empty"><div class="icon">📂</div><p>${missing}<br/>Run <code>python demo.py</code> first.</p></div>`;
+    return;
+  }
+  const d = demoData[key];
+  const meta = STRATEGY_META[key];
+  const correct = d.final_correct;
+  const pz = d.true_patient_zero;
+  const steps = d.steps || [];
+
+  const rows = steps.map((s, i) => {
+    const isGuess = s.action.startsWith('Guess');
+    const rClass = s.reward > 0 ? 'reward-pos' : 'reward-neg';
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td class="${isGuess ? 'action-guess' : ''}">${isGuess ? '🎯 ' : '🔬 '}${s.action}</td>
+      <td class="${rClass}">${s.reward.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="margin-bottom:1rem;">
+      <div style="font-weight:700; font-size:1rem; color:var(--text)">${meta.label}</div>
+      <div style="color:var(--muted); font-size:0.84rem; margin-top:0.3rem">${meta.desc}</div>
+    </div>
+    <div class="scroll-box">
+      <table class="step-table">
+        <thead><tr><th>#</th><th>Action</th><th>Reward</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex; align-items:center; gap:1rem; margin-top:1rem; flex-wrap:wrap;">
+      <div class="verdict ${correct ? 'correct' : 'wrong'}">
+        ${correct ? '✓ Correct Identification' : '✗ Incorrect Identification'}
+      </div>
+      <div style="color:var(--muted); font-size:0.85rem">
+        True Patient Zero: <span style="color:var(--orange); font-family:var(--mono)">Node ${pz}</span>
+      </div>
+      <div style="color:var(--muted); font-size:0.85rem">
+        Tests Used: <span style="color:var(--accent2); font-family:var(--mono)">${steps.filter(s => s.action.startsWith('Test')).length}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderAccuracyChart() {
+  const container = document.getElementById('accuracy-chart');
+  if (!demoData) return;
+
+  const all = [];
+  for (const [key, meta] of Object.entries(STRATEGY_META)) {
+    if (demoData[key]) {
+      all.push({ label: meta.label.split(' ').slice(1).join(' '), color: meta.color, correct: demoData[key].final_correct });
+    }
+  }
+  if (window._evalData) {
+    all.push({ label: 'RL Agent (PPO)', color: '#9b59b6', correct: window._evalData.final_correct });
+  }
+
+  container.innerHTML = all.map(item => `
+    <div class="acc-row">
+      <div class="acc-label" style="color:${item.color}">${item.label}</div>
+      <div class="acc-bar-wrap">
+        <div class="acc-bar" style="width:${item.correct ? '100' : '20'}%; background:${item.color}20; border-left:3px solid ${item.color}; color:${item.color}">
+          ${item.correct ? '✓ Identified' : '✗ Missed'}
+        </div>
+      </div>
+      <div class="acc-result" style="color:${item.correct ? 'var(--success)' : 'var(--danger)'}">
+        ${item.correct ? '1 / 1' : '0 / 1'}
+      </div>
+    </div>
+  `).join('');
+}
+
+/* ─── Training Rendering ────────────────────────────── */
+function renderTraining(data) {
+  const container = document.getElementById('training-content');
+  const metrics = data.training_metrics || [];
+  if (!metrics.length) {
+    container.innerHTML = `<div class="empty"><div class="icon">📭</div><p>No training metrics found.</p></div>`;
+    return;
+  }
+
+  const rewards = metrics.map(m => m.mean_reward ?? 0);
+  const maxR = Math.max(...rewards.map(Math.abs), 1);
+
+  const rows = metrics.map(m => {
+    const r = m.mean_reward ?? 0;
+    const pct = Math.max(2, ((r + maxR) / (2 * maxR)) * 100);
+    return `
+      <div class="metric-row">
+        <div class="iter">Iter ${m.iteration}</div>
+        <div class="reward-bar"><div class="reward-bar-fill" style="width:${pct}%"></div></div>
+        <div class="reward-val">${r !== null ? r.toFixed(4) : 'N/A'}</div>
+      </div>`;
+  }).join('');
+
+  const finalR = rewards[rewards.length - 1];
+  const firstR = rewards[0];
+  const trend = finalR > firstR ? '↑ Improving' : finalR < firstR ? '↓ Declining' : '→ Stable';
+  const tColor = finalR > firstR ? 'var(--success)' : finalR < firstR ? 'var(--danger)' : 'var(--muted)';
+
+  container.innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem;">
+      <div class="stat-card"><div class="stat-val" style="font-size:1.5rem">${metrics.length}</div><div class="stat-label">Iterations</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:1.5rem; color:var(--accent2)">${finalR.toFixed(4)}</div><div class="stat-label">Final Mean Reward</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:1.5rem; color:${tColor}">${trend}</div><div class="stat-label">Trend</div></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700; margin-bottom:1rem; color:var(--accent2);">📈 Mean Reward per Iteration</div>
+      <div>${rows}</div>
+    </div>
+  `;
+}
+
+/* ─── Evaluation Rendering ──────────────────────────── */
+function renderEvaluation(data) {
+  const container = document.getElementById('evaluation-content');
+  window._evalData = data;
+  const steps = data.steps || [];
+  const correct = data.final_correct;
+  const pz = data.true_patient_zero;
+  const used = data.total_tests;
+
+  const rows = steps.map((s, i) => {
+    const isGuess = s.action.startsWith('Agent') && s.action.includes('Guess') || s.action.includes('Guess');
+    const rClass = s.reward > 0 ? 'reward-pos' : 'reward-neg';
+    return `<tr>
+      <td style="color:var(--muted)">${i+1}</td>
+      <td class="${isGuess ? 'action-guess' : ''}">${isGuess ? '🎯 ' : '🧠 '}${s.action}</td>
+      <td class="${rClass}">${s.reward.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem;">
+      <div class="stat-card"><div class="stat-val" style="font-size:1.5rem; color:var(--accent1)">${used ?? steps.filter(s=>!s.action.includes('Guess')).length}</div><div class="stat-label">Tests Used</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:1.5rem; color:var(--orange)">Node ${pz}</div><div class="stat-label">True Patient Zero</div></div>
+      <div class="stat-card"><div class="stat-val" style="font-size:1.5rem; color:${correct?'var(--success)':'var(--danger)'}">${correct?'✅':'❌'}</div><div class="stat-label">Identified Correctly</div></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:700; margin-bottom:1rem; color:var(--accent2);">🧠 RL Agent Step-by-Step Log</div>
+      <div class="scroll-box">
+        <table class="step-table">
+          <thead><tr><th>#</th><th>Action</th><th>Reward</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="verdict ${correct ? 'correct' : 'wrong'}" style="margin-top:1rem;">
+        ${correct ? '✓ Agent Correctly Identified Patient Zero!' : '✗ Agent Incorrect — Needs More Training'}
+      </div>
+    </div>
+  `;
+
+  // Re-render accuracy chart now that eval data is available
+  renderAccuracyChart();
+}
+
+/* ─── Data Loading ───────────────────────────────────── */
+async function tryLoad(path) {
+  try {
+    const r = await fetch(path);
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+async function loadAll() {
+  // Dataset stats — infer from demo results
+  const demo = await tryLoad('../results_demo.json');
+  if (demo) {
+    demoData = demo;
+    // Show first strategy by default
+    renderBaseline('random');
+    renderAccuracyChart();
+    // Node count inferred from max node id in results
+    document.getElementById('stat-nodes').textContent = '~4.04M';
+    document.getElementById('stat-edges').textContent = '~34.7M';
+  } else {
+    document.getElementById('baseline-content').innerHTML =
+      `<div class="empty"><div class="icon">📂</div><p>Run <code>python demo.py</code> to generate baseline results.</p></div>`;
+    document.getElementById('accuracy-chart').innerHTML =
+      `<div class="empty"><div class="icon">📂</div><p>No data — run <code>python demo.py</code> first.</p></div>`;
+  }
+
+  const train = await tryLoad('../results_train.json');
+  if (train) renderTraining(train);
+  else {
+    document.getElementById('training-content').innerHTML =
+      `<div class="empty"><div class="icon">⏳</div><p>Training in progress or not started.<br/>Run <code>python train.py</code> and wait for it to finish.</p></div>`;
+  }
+
+  const ev = await tryLoad('../results_evaluate.json');
+  if (ev) renderEvaluation(ev);
+  else {
+    document.getElementById('evaluation-content').innerHTML =
+      `<div class="empty"><div class="icon">🔒</div><p>No evaluation data yet.<br/>Run <code>python train.py</code> then <code>python evaluate.py</code>.</p></div>`;
+  }
+}
+
+loadAll();
+</script>
+</body>
+</html>

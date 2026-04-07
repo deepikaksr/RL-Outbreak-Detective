@@ -1,0 +1,136 @@
+19MAM82 – REINFORCEMENT LEARNING
+Project Proposal: RL as an Outbreak Detective
+Identifying Patient Zero in a Contact Network with a Limited Testing Budget
+
+1. Problem Statement
+In a real disease outbreak, testing every person is expensive and slow. The goal of this
+project is to build a reinforcement learning (RL) agent that acts like a detective. Given a
+contact network, the agent can test only a limited number of people and must identify the
+hidden first infected person (patient zero) as accurately as possible.
+2. Objectives
+•
+•
+•
+•
+•
+
+Build a simulator that generates a contact network and simulates disease spread using
+an SIR model (Susceptible-Infected-Recovered).
+Formulate the task as an RL problem where the agent chooses whom to test at each
+step under a fixed testing budget (K tests).
+Train an RL policy that maximizes patient-zero identification accuracy while using
+fewer tests.
+Compare the RL approach with simple baseline strategies (random testing and
+heuristic testing).
+Show how HPC improves training and evaluation using parallel simulations and
+parameter sweeps.
+
+3. Proposed Methodology
+3.1 Environment (Episode Setup)
+•
+•
+•
+•
+
+Generate a contact graph (nodes represent people; edges represent contact).
+Select patient zero (hidden from the agent).
+Simulate outbreak spread with the SIR model over multiple time steps (stochastic
+transitions).
+The agent interacts for up to K steps; each step corresponds to choosing one person to
+test.
+
+3.2 RL Formulation
+•
+•
+•
+•
+
+Observation (state): history of test results, which nodes were tested, and simple graph
+features (e.g., node degree, tested-neighbor counts).
+Action: choose one person (node) to test next.
+Test result: infected / recovered / never infected (optional: noisy tests as an
+extension).
+Terminal decision: after K tests, the agent outputs a final guess for patient zero.
+
+3.3 Reward Design
+•
+•
+
++1 if the final guess is the true patient zero; -1 otherwise.
+Small penalty per test (e.g., -0.01 per test) to encourage efficient testing.
+
+3.4 Learning Algorithm
+•
+•
+
+Primary choice: PPO (stable for stochastic and partially observed settings).
+Alternative: DQN (if the observation is kept small and mostly discrete).
+
+4. Baselines for Comparison
+•
+•
+•
+
+Random testing: test random people; guess using a simple rule (e.g., earliest positive
+test).
+High-degree heuristic: test the most connected nodes first.
+Simple contact-tracing heuristic: after a positive test, prioritize testing neighbors.
+
+5. How HPC Is Used
+Reinforcement learning requires a large amount of simulated experience (many outbreak
+episodes). HPC is used to accelerate experimentation and improve result reliability:
+•
+•
+•
+•
+
+Parallel rollouts: run many outbreak simulations simultaneously across multiple CPU
+cores/nodes to collect training data faster.
+Distributed data collection: multiple workers generate episodes while a central learner
+updates the RL policy.
+Hyperparameter sweeps: run multiple training configurations in parallel (learning
+rate, K, graph size, infection parameters).
+Large-scale evaluation: evaluate the trained policy on many unseen graphs and
+random seeds to obtain statistically reliable accuracy.
+
+6. Evaluation Metrics
+•
+•
+•
+
+Patient-zero identification accuracy (% correct) under a fixed budget of K tests.
+Comparison with baselines (accuracy under the same K).
+HPC scaling results: episodes per second and time-to-target accuracy vs number of
+workers.
+
+7. Expected Outcomes
+•
+•
+•
+
+An RL agent that achieves higher accuracy than baseline strategies under the same
+testing budget.
+Clear evidence that HPC parallelization reduces training time and enables larger,
+more reliable experiments.
+A demo run showing which people were tested and the final patient-zero prediction.
+
+8. Tools and Implementation
+•
+•
+•
+•
+
+Python for simulation and training.
+NetworkX for graph generation and feature computation.
+PyTorch and an RL library (e.g., Stable-Baselines3 or RLlib) for PPO/DQN.
+HPC environment using a job scheduler (e.g., SLURM) to run parallel simulations
+and training runs.
+
+Staff Coordinator
+Dr.N.Vanitha - Assistant Professor
+
+Project Team Members
+Deepika KSR - 71762234011
+Sangamithra G - 71762234038
+
+

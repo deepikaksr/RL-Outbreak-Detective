@@ -79,8 +79,15 @@ if __name__ == "__main__":
     log_data["true_patient_zero"] = int(env.patient_zero)
     
     # Overwrite prior logs natively
-    with open('results_evaluate.json', 'w') as f:
+    results_path = "results_evaluate.json"
+    with open(results_path, "w") as f:
         json.dump(log_data, f, indent=4)
         
-    print("\nEvaluation completed. Results saved to 'results_evaluate.json'.")
+    # Also sync to ui/ folder for portable dashboard access
+    import shutil
+    import os
+    if os.path.exists("ui"):
+        shutil.copy(results_path, os.path.join("ui", results_path))
+        
+    print(f"Evaluation completed. Results saved to '{results_path}'.")
     ray.shutdown()

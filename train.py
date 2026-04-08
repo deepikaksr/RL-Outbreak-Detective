@@ -65,9 +65,18 @@ if __name__ == "__main__":
     print(f"Training completed. Checkpoint saved to: {checkpoint_dir}")
     
     # Save the UI outputs to match demo and evaluation!
-    with open('results_train.json', 'w') as f:
-        json.dump({"training_metrics": training_metrics}, f, indent=4)
-    print("Training metrics saved to 'results_train.json'.")
+    results_path = "results_train.json"
+    results = {"training_metrics": training_metrics}
+    with open(results_path, "w") as f:
+        json.dump(results, f, indent=4)
+        
+    # Also sync to ui/ folder for portable dashboard access
+    import shutil
+    import os
+    if os.path.exists("ui"):
+        shutil.copy(results_path, os.path.join("ui", results_path))
+        
+    print(f"Training completed. Metrics saved to '{results_path}'.")
     
     print("\nTraining finished! Securing shutdown...")
     

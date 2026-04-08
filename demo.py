@@ -87,8 +87,15 @@ if __name__ == "__main__":
     print("\n--- Running Contact-Tracing Baseline ---")
     all_results["contact_tracing"] = run_baseline(env, strategy="contact_tracing")
     
-    # Save cleanly overwriting previous runs
-    with open('results_demo.json', 'w') as f:
+    # Save results to JSON for UI
+    results_path = "results_demo.json"
+    with open(results_path, "w") as f:
         json.dump(all_results, f, indent=4)
         
-    print("\nDemo script completed. Results saved to 'results_demo.json'.")
+    # Also sync to ui/ folder for portable dashboard access
+    import shutil
+    import os
+    if os.path.exists("ui"):
+        shutil.copy(results_path, os.path.join("ui", results_path))
+        
+    print(f"Demo script completed. Results saved to '{results_path}'.")

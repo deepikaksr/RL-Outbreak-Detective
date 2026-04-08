@@ -590,8 +590,8 @@ function renderEvaluation(data) {
 async function tryLoad(path) {
   // Try multiple possible paths to accommodate different server root locations
   const paths = [
-    path,                    // Provided path (e.g., ../results_demo.json)
     path.replace('../', './'), // Direct sibling (e.g., ./results_demo.json)
+    path,                    // Provided path (e.g., ../results_demo.json)
     path.replace('../', '/')   // Server root (e.g., /results_demo.json)
   ];
   

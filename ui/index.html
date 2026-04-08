@@ -588,11 +588,20 @@ function renderEvaluation(data) {
 
 /* ─── Data Loading ───────────────────────────────────── */
 async function tryLoad(path) {
-  try {
-    const r = await fetch(path);
-    if (!r.ok) return null;
-    return await r.json();
-  } catch { return null; }
+  // Try multiple possible paths to accommodate different server root locations
+  const paths = [
+    path,                    // Provided path (e.g., ../results_demo.json)
+    path.replace('../', './'), // Direct sibling (e.g., ./results_demo.json)
+    path.replace('../', '/')   // Server root (e.g., /results_demo.json)
+  ];
+  
+  for (const p of paths) {
+    try {
+      const r = await fetch(p);
+      if (r.ok) return await r.json();
+    } catch (e) { /* ignore and try next */ }
+  }
+  return null;
 }
 
 async function loadAll() {

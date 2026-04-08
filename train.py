@@ -61,7 +61,7 @@ if __name__ == "__main__":
             "mean_reward": float(mean_reward) if mean_reward != 'N/A' else None
         })
         
-    checkpoint_dir = algo.save(checkpoint_dir="checkpoints")
+    checkpoint_dir = algo.save(checkpoint_dir=os.path.abspath("checkpoints"))
     print(f"Training completed. Checkpoint saved to: {checkpoint_dir}")
     
     # Save the UI outputs to match demo and evaluation!

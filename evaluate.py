@@ -18,7 +18,7 @@ register_env("outbreak_env", env_creator)
 if __name__ == "__main__":
     ray.init(ignore_reinit_error=True)
     
-    checkpoint_path = "checkpoints"
+    checkpoint_path = os.path.abspath("checkpoints")
     
     if not os.path.exists(checkpoint_path):
         print(f"Error: No checkpoint found at '{checkpoint_path}'. Make sure you run train.py first!")

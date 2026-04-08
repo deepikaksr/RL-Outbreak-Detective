@@ -44,9 +44,18 @@ if __name__ == "__main__":
     num_nodes = env.num_nodes
     log_data = {"steps": []}
     
+    import torch
+    module = algo.get_module()
+    
     while not done:
-        # Ask the trained brain for the best action based on the current observation
-        action = algo.compute_single_action(obs, explore=False)
+        # Use the RLModule directly for inference (New API Stack)
+        obs_batch = torch.from_numpy(obs).float().unsqueeze(0)
+        outputs = module.forward_inference({"obs": obs_batch})
+        
+        # In Ray 3.x New API Stack, PPO returns 'action_dist_inputs' (logits)
+        # We take the argmax for deterministic evaluation
+        logits = outputs["action_dist_inputs"]
+        action = torch.argmax(logits, dim=-1)[0].item()
         
         obs, reward, terminated, truncated, info = env.step(action)
         done = terminated or truncated

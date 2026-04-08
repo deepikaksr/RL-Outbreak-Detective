@@ -95,11 +95,11 @@ class OutbreakEnv(gym.Env):
             # Action is a test
             node_to_test = action
             
+            self.tests_used += 1
             if self.tested_nodes[node_to_test] != -1:
                 # Already tested, illegal or wasteful move
                 reward = -1.0 # high penalty to discourage testing same node
             else:
-                self.tests_used += 1
                 # If Infected or Recovered, test is positive
                 is_positive = 1 if self.node_states[node_to_test] in [1, 2] else 0
                 self.tested_nodes[node_to_test] = is_positive

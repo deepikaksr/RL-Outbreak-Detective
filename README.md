@@ -1,25 +1,17 @@
-# RL as an Outbreak Detective 🕵️‍♂️🦠
+# 🛡️ RL Outbreak Detective: Identifying Patient Zero
 
-This project implements a Reinforcement Learning agent capable of identifying a hidden "Patient Zero" across a massive community contact network under a heavily constrained testing budget.
-
-## Project Architecture
-- **Environment (*`env/outbreak_env.py`*):** A custom Gymnasium SIR simulation.
-- **Dataset (*`dataset_utils.py`*):** Automates the download of the Stanford SNAP LiveJournal network (4 million nodes, 34 million edges).
-- **Core Scripts:** Scripts to train and benchmark the AI agent using Ray RLlib to leverage High-Performance Computing (HPC) nodes.
+A Reinforcement Learning (RL) approach to identifying Patient Zero in large-scale social networks (4.04M nodes) using **Proximal Policy Optimization (PPO)** and custom **Contact-Tracing** heuristics.
 
 ---
 
-## 🚀 Execution Order
+## 🚀 Quick Start Instructions
 
-Ensure your virtual environment is activated before running any scripts:
+Follow these steps to run the complete diagnostic and visualization pipeline:
+
+### 1. Environment Setup
 ```bash
+python3 -m venv venv
 source venv/bin/activate
-```
-
-### 0. Run Unit Tests (`tests/test_env.py`)
-Validate the environment is correctly implemented before running anything:
-```bash
-python -m pytest tests/test_env.py -v
 ```
 > All 6 tests should pass (SIR conservation, Gym API, action rewards, re-test penalty, correct/wrong guess rewards).
 

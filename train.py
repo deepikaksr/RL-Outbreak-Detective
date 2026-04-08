@@ -46,7 +46,16 @@ if __name__ == "__main__":
     )
     
     print("Starting PPO Training using Ray RLlib...")
-    algo = config.build()
+    
+    # Check for existing checkpoint to resume training
+    checkpoint_path = os.path.abspath("checkpoints")
+    if os.path.exists(checkpoint_path) and any(f.endswith('.json') for f in os.listdir(checkpoint_path)):
+        print(f"Resuming from previous checkpoint: {checkpoint_path}")
+        algo = config.build()
+        algo.restore(checkpoint_path)
+    else:
+        print("No valid checkpoint found. Starting fresh training.")
+        algo = config.build()
     
     training_metrics = []
     

@@ -27,7 +27,35 @@ Uses **Ray RLlib** to spawn parallel environments (mapped to 26 CPU cores) and t
 ```bash
 python train.py
 ```
-> The agent's *Mean Reward* is printed each iteration — watch it climb! Saves checkpoint to `checkpoints/` and metrics to `results_train.json`.
+> The agent's *Mean Reward* is printed each iteration — watch it climb!
+
+## 🏗️ System Architecture
+
+This project follows a modular pipeline for Reinforcement Learning on large-scale graphs.
+
+```mermaid
+graph TD
+    subgraph "1. Data Layer"
+        SNAP["SNAP Dataset"] --> Sampling["Subgraph Sampling (50K Nodes)"]
+    end
+    subgraph "2. Environment (Gymnasium)"
+        Sampling --> Env["OutbreakEnv (SIR Simulation)"]
+        Env --> Rewards["Reward Shaping (Success/Penalty)"]
+    end
+    subgraph "3. Learning (Ray RLlib)"
+        Rewards --> PPO["PPO Algorithm"]
+        PPO --> Policy["Policy Network (FCNet)"]
+    end
+    subgraph "4. Analytics"
+        Policy --> UI["Glassmorphism Dashboard"]
+        Policy --> Plots["Matplotlib Charts"]
+    end
+```
+
+For a detailed technical breakdown, see the [Architecture Diagram Artifact](file:///home/lenova/.gemini/antigravity/brain/fb09f257-528a-4816-8523-573fd43236ff/architecture_diagram.md).
+
+## 🚀 Final Checklist for Success
+Saves checkpoint to `checkpoints/` and metrics to `results_train.json`.
 
 ### 3. Evaluate the Trained Agent (`evaluate.py`)
 Load the trained brain from the `checkpoints/` directory and run a full episode step-by-step.

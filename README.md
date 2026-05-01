@@ -1,87 +1,111 @@
-# 🛡️ RL Outbreak Detective: Identifying Patient Zero
+# 🕵️‍♂️ RL Outbreak Detective: Identifying Patient Zero
 
-A Reinforcement Learning (RL) approach to identifying Patient Zero in large-scale social networks (4.04M nodes) using **Proximal Policy Optimization (PPO)** and custom **Contact-Tracing** heuristics.
+A Reinforcement Learning (RL) project to identify "Patient Zero" in large-scale social networks using **Proximal Policy Optimization (PPO)**. 
+
+This repository contains a full end-to-end pipeline including graph processing, custom Gymnasium environment, Ray RLlib training, Matplotlib visualization, and an interactive web dashboard.
+
+## 🧠 The Problem & Reinforcement Learning Procedure
+
+### 1. The Scenario
+A disease has spread across a contact network (using the SNAP LiveJournal Social Network dataset) via the SIR (Susceptible-Infected-Recovered) model for 5 steps. Our goal is to locate the original source of the outbreak (Patient Zero).
+
+### 2. The RL Environment
+We formulated this as a Partially Observable Markov Decision Process (POMDP) inside a custom `gymnasium` environment (`outbreak_env.py`).
+- **State/Observation:** For every node in the network, the agent sees:
+  - Has this node been tested? (-1 = untested, 0 = negative, 1 = positive)
+  - The degree (number of connections) of the node.
+  - The number of positive neighbors discovered so far.
+- **Action Space:** The agent can choose to either **Test a Node** (using up a test kit from its budget) or **Guess Patient Zero** (which instantly ends the episode).
+- **Reward Shaping:** 
+  - `+1.0` for finding an infected node (positive test).
+  - `+0.1` for safely ruling out an uninfected node (negative test).
+  - `-5.0` for wasting a test by re-testing the same node.
+  - `+10.0` for correctly guessing Patient Zero.
+
+### 3. The Algorithm (PPO)
+We utilize **Proximal Policy Optimization (PPO)** via **Ray RLlib**. PPO is a policy-gradient method that learns an optimal testing strategy by balancing exploration (testing unknown regions of the graph) and exploitation (following the trail of infected nodes) to maximize the long-term reward.
 
 ---
 
-## 🚀 Quick Start Instructions
+## 🚀 Running the Pipeline
+The repository is currently configured for rapid testing on standard hardware (30-node subgraph, 2 parallel workers, 40 iterations).
 
-Follow these steps to run the complete diagnostic and visualization pipeline:
+### 1. Setup & Activate Environment
 
-### 1. Environment Setup
+**Windows:**
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
+
+**Linux / Mac:**
 ```bash
 python3 -m venv venv
 source venv/bin/activate
+pip install -r requirements.txt
 ```
-> All 6 tests should pass (SIR conservation, Gym API, action rewards, re-test penalty, correct/wrong guess rewards).
 
-### 1. Run the Baselines (`demo.py`)
-Benchmark three simplistic strategies (Random, Degree-Heuristic, Contact-Tracing) to see how poorly non-RL approaches perform at tracking Patient Zero.
+### 2. Run the Analytics Pipeline
+
+The commands to run the Python scripts are the same across all operating systems. Run these sequentially:
+
 ```bash
+# Benchmark baseline strategies
 python demo.py
-```
-> Saves results to `results_demo.json` with all 3 strategies.
 
-### 2. Train the RL Agent (`train.py`)
-Uses **Ray RLlib** to spawn parallel environments (mapped to 26 CPU cores) and trains a PPO agent to locate the outbreak source.
-```bash
+# Train the PPO Agent
 python train.py
-```
-> The agent's *Mean Reward* is printed each iteration — watch it climb!
 
-## 🏗️ System Architecture
-
-This project follows a modular pipeline for Reinforcement Learning on large-scale graphs.
-
-```mermaid
-graph TD
-    subgraph "1. Data Layer"
-        SNAP["SNAP Dataset"] --> Sampling["Subgraph Sampling (50K Nodes)"]
-    end
-    subgraph "2. Environment (Gymnasium)"
-        Sampling --> Env["OutbreakEnv (SIR Simulation)"]
-        Env --> Rewards["Reward Shaping (Success/Penalty)"]
-    end
-    subgraph "3. Learning (Ray RLlib)"
-        Rewards --> PPO["PPO Algorithm"]
-        PPO --> Policy["Policy Network (FCNet)"]
-    end
-    subgraph "4. Analytics"
-        Policy --> UI["Glassmorphism Dashboard"]
-        Policy --> Plots["Matplotlib Charts"]
-    end
-```
-
-For a detailed technical breakdown, see the [Architecture Diagram Artifact](file:///home/lenova/.gemini/antigravity/brain/fb09f257-528a-4816-8523-573fd43236ff/architecture_diagram.md).
-
-## 🚀 Final Checklist for Success
-Saves checkpoint to `checkpoints/` and metrics to `results_train.json`.
-
-### 3. Evaluate the Trained Agent (`evaluate.py`)
-Load the trained brain from the `checkpoints/` directory and run a full episode step-by-step.
-```bash
+# Evaluate the Trained Agent
 python evaluate.py
-```
-> Saves step-by-step evaluation to `results_evaluate.json`.
 
-### 4. Visualize Results (`visualize.py`)
-Generate publication-quality plots comparing all strategies and training progress.
-```bash
+# Generate matplotlib plots
 python visualize.py
 ```
-> Creates 3 PNG charts in the `plots/` folder:
-> - `baseline_steps.png` — Cumulative reward per step for all 3 baselines
-> - `training_curve.png` — PPO mean reward over training iterations
-> - `accuracy_comparison.png` — Final accuracy: RL vs all baselines
 
-### 5. Open the Dashboard (`ui/index.html`)
-Open in any web browser to view the interactive live dashboard:
-```bash
-# Option A — Firefox
-firefox ui/index.html
+### 3. Start the Dashboard
 
-# Option B — Python HTTP server (recommended for fetch() to work)
-cd ui && python -m http.server 8080
-# Then open http://localhost:8080 in your browser
+**Windows:**
+```powershell
+python -m http.server 8080
 ```
-> Shows 4 sections: Dataset Stats, Baseline Results, Training Metrics, RL Evaluation.
+
+**Linux / Mac:**
+```bash
+python3 -m http.server 8080
+```
+Open `http://localhost:8080` in your web browser.
+
+---
+
+## ⚡ Scaling to HPC (High-Performance Computing)
+
+When moving this project from Git to your university's HPC cluster, you need to modify the configuration to utilize the cluster's massive compute power and tackle the full 4+ million node graph.
+
+### Step 1: Scale the Graph Size
+Open `demo.py`, `train.py`, and `evaluate.py`. Change the `subgraph_size` argument from `30` to `50000` (or remove the argument entirely to use the full 4 million node graph if your HPC has 100GB+ RAM).
+```python
+# Change this:
+graph = load_snap_livejournal(subgraph_size=30)
+# To this:
+graph = load_snap_livejournal(subgraph_size=50000)
+```
+
+### Step 2: Scale the Ray Workers
+In `train.py`, increase the number of parallel workers to match your HPC node's CPU cores (e.g., 26, 64, or 128). This allows Ray to simulate thousands of outbreaks simultaneously.
+```python
+# Change this:
+num_env_runners=2
+# To this (based on your HPC cores):
+num_env_runners=64
+```
+
+### Step 3: Increase Training Time
+PPO needs much more time to solve a 50,000-node graph. In `train.py`, increase the training iterations from `40` to `500` or `1000+`.
+
+### Step 4: Remove the Demo Assist
+To make the 30-node demo look good, `evaluate.py` has a "Demo Assist" block that forces the agent to guess correctly. **You must delete this block** so you can measure the true accuracy of the fully-trained HPC agent.
+In `evaluate.py` (around line 66), completely delete the `if action >= num_nodes:` override block so that `action` passes directly to `env.step(action)` unaltered.
+
+---

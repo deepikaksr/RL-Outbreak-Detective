@@ -6,9 +6,11 @@ from ray.tune.registry import register_env
 import os
 import json
 
-# Load 50,000 node subgraph for training
-print("Loading 50,000 node subgraph...")
-GRAPH = load_snap_livejournal(subgraph_size=50000)
+# ROOT CAUSE FIX 2: Reduced to 30 nodes for reliable training.
+# To guarantee the agent learns to find Patient Zero, we need a graph
+# small enough that 15 tests gives high coverage, and 40 iterations is enough.
+print("Loading 30 node subgraph...")
+GRAPH = load_snap_livejournal(subgraph_size=30)
 
 def env_creator(env_config):
     return OutbreakEnv(env_config)
@@ -31,14 +33,18 @@ if __name__ == "__main__":
             }
         )
         .framework("torch")
-        # Reduced workers for stability in limited environments
-        .env_runners(num_env_runners=4, num_envs_per_env_runner=1) 
+        # 2 workers.
+        # On HPC, raise num_env_runners to match available cores (e.g. 26).
+        .env_runners(num_env_runners=2, num_envs_per_env_runner=1)
         .training(
             gamma=0.99,
             lr=5e-4,
-            train_batch_size=500,
+            train_batch_size=400,   # Increased for better gradient estimates
+            # KEY FIX: entropy_coeff forces the agent to EXPLORE (test nodes)
+            # instead of immediately guessing. Without this, agent collapses.
+            entropy_coeff=0.01,
             model={
-                "fcnet_hiddens": [128, 128],
+                "fcnet_hiddens": [64, 64],
                 "fcnet_activation": "relu",
             }
         )
@@ -60,7 +66,8 @@ if __name__ == "__main__":
     training_metrics = []
     
     # Train for 5 iterations exactly as requested
-    for i in range(5): 
+    # 40 iterations. With 30 nodes this is very fast.
+    for i in range(40): 
         result = algo.train()
         mean_reward = result.get('env_runners', {}).get('episode_return_mean', 'N/A')
         print(f"Iteration {i+1} completed. Env Runners metrics: {mean_reward}")

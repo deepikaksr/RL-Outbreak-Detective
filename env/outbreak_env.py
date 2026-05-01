@@ -97,8 +97,8 @@ class OutbreakEnv(gym.Env):
             
             self.tests_used += 1
             if self.tested_nodes[node_to_test] != -1:
-                # Already tested, illegal or wasteful move
-                reward = -1.0 # high penalty to discourage testing same node
+                # Already tested — massive penalty to strongly discourage re-testing
+                reward = -5.0
             else:
                 # If Infected or Recovered, test is positive
                 is_positive = 1 if self.node_states[node_to_test] in [1, 2] else 0
@@ -108,12 +108,18 @@ class OutbreakEnv(gym.Env):
                 if is_positive == 1:
                     for neighbor in self.adj_list[node_to_test]:
                         self.positive_neighbors[neighbor] += 1
-                        
-                reward = -0.05 # Cost per test
+                
+                # REWARD FIX 3: Make testing ALWAYS positive so the agent uses its budget.
+                # If negative tests cost -0.05, it might just avoid testing entirely.
+                if is_positive == 1:
+                    reward = 1.0  # Big reward for finding a positive (infected) node
+                else:
+                    reward = 0.1  # Small positive reward for safely ruling someone out
                 
             if self.tests_used >= self.max_tests:
-                # Ran out of budget
+                # REWARD FIX: Removed the -5.0 budget exhaustion penalty.
+                # Before: testing 15 nodes cost -5.75, worse than immediate guess (-5.0).
+                # Now: budget exhaustion just ends the episode with no extra penalty.
                 truncated = True
-                reward -= 5.0 # Penalty for failing to guess in time
                 
         return self._get_obs(), reward, terminated, truncated, {}

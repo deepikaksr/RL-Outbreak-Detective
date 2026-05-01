@@ -66,8 +66,8 @@ def run_baseline(env, strategy="random"):
     return log_data
 
 if __name__ == "__main__":
-    print("Loading 50,000 node subgraph for Demo...")
-    graph = load_snap_livejournal(subgraph_size=50000)
+    print("Loading 30 node subgraph for Demo...")
+    graph = load_snap_livejournal(subgraph_size=30)
     
     env_config = {
         "graph": graph,

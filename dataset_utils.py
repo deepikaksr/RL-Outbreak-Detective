@@ -19,7 +19,15 @@ def load_snap_livejournal(subgraph_size=None):
     If subgraph_size is specified, it extracts a connected subgraph of that size using BFS.
     """
     url = "https://snap.stanford.edu/data/bigdata/communities/com-lj.ungraph.txt.gz"
-    gz_path = "com-lj.ungraph.txt.gz"
+    
+    # Save the ~350MB dataset to E: drive if available (88GB free).
+    # Falls back to current directory if E: drive doesn't exist.
+    if os.path.exists("E:\\"):
+        gz_path = os.path.join("E:\\", "com-lj.ungraph.txt.gz")
+        print(f"[Dataset] Using E: drive for storage: {gz_path}")
+    else:
+        gz_path = "com-lj.ungraph.txt.gz"
+        print(f"[Dataset] E: drive not found, saving locally: {gz_path}")
     
     download_file(url, gz_path)
     print("Loading LiveJournal Graph...")
